@@ -6,7 +6,7 @@
 from .cryptomath import *
 
 
-class RSAKey:
+class RSAKey(object):
     """This is an abstract base class for RSA keys.
 
     Particular implementations of RSA keys, such as
@@ -174,9 +174,42 @@ class RSAKey:
             return None
         m = self._rawPrivateKeyOp(c)
         decBytes = numberToByteArray(m, numBytes(self.n))
-        if decBytes[0] != 0 or decBytes[1] != 2: #Check first two bytes
+        # Check first two bytes (RFC 2313, Section 8.1)
+        if decBytes[0] != 0 or decBytes[1] != 2:
             return None
-        for x in range(1, len(decBytes)-1): #Scan through for zero separator
+        # Scan through for zero separator (RFC 2313, Section 8.1)
+        for x in range(1, len(decBytes)-1):
+            if decBytes[x]== 0:
+                break
+        else:
+            return None
+        return decBytes[x+1:] #Return everything after the separator
+
+    def decryptUsingPublicExponent(self, encBytes):
+        """Decrypt the passed-in bytes.
+
+        This requires the key to have a public component.  It performs
+        PKCS1 decryption of the passed-in data.
+
+        @type encBytes: L{bytearray} of unsigned bytes
+        @param encBytes: The value which will be decrypted.
+
+        @rtype: L{bytearray} of unsigned bytes or None.
+        @return: A PKCS1 decryption of the passed-in data or None if
+        the data is not properly formatted.
+        """
+        if len(encBytes) != numBytes(self.n):
+            return None
+        c = bytesToNumber(encBytes)
+        if c >= self.n:
+            return None
+        m = self._rawPublicKeyOp(c)
+        decBytes = numberToByteArray(m, numBytes(self.n))
+        # Check first two bytes (RFC 2313, Section 8.1)
+        if decBytes[0] != 0 or decBytes[1] != 2:
+            return None
+        # Scan through for zero separator (RFC 2313, Section 8.1)
+        for x in range(1, len(decBytes)-1):
             if decBytes[x]== 0:
                 break
         else:

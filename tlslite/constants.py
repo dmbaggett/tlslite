@@ -3,6 +3,7 @@
 #   Google - defining ClientCertificateType
 #   Google (adapted by Sam Rushing) - NPN support
 #   Dimitris Moraitis - Anon ciphersuites
+#   Dave Baggett (Arcode Corporation) - RC2, RC4-MD5, AES128-SHA256, AES256-SHA256
 #
 # See the LICENSE file for legal information regarding use of this file.
 
@@ -125,8 +126,13 @@ class CipherSuite:
 
     TLS_RSA_WITH_3DES_EDE_CBC_SHA = 0x000A
     TLS_RSA_WITH_AES_128_CBC_SHA = 0x002F
+    TLS_RSA_WITH_AES_128_CBC_SHA256 = 0x003C
     TLS_RSA_WITH_AES_256_CBC_SHA = 0x0035
+    TLS_RSA_WITH_AES_256_CBC_SHA256 = 0x003D
+    TLS_RSA_WITH_RC4_128_MD5 = 0x0004
     TLS_RSA_WITH_RC4_128_SHA = 0x0005
+
+    TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5 = 0x0006
 
     TLS_DH_ANON_WITH_AES_128_CBC_SHA = 0x0034
     TLS_DH_ANON_WITH_AES_256_CBC_SHA = 0x003A
@@ -176,6 +182,9 @@ class CipherSuite:
     certSuites.append(TLS_RSA_WITH_AES_128_CBC_SHA)
     certSuites.append(TLS_RSA_WITH_AES_256_CBC_SHA)
     certSuites.append(TLS_RSA_WITH_RC4_128_SHA)
+    certSuites.append(TLS_RSA_WITH_AES_128_CBC_SHA256)
+    certSuites.append(TLS_RSA_WITH_AES_256_CBC_SHA256)
+    certSuites.append(TLS_RSA_WITH_RC4_128_MD5)
     certAllSuites = srpCertSuites + certSuites
     
     @staticmethod    
@@ -184,10 +193,16 @@ class CipherSuite:
         for cipher in ciphers:
             if cipher == "aes128":
                 suites.append(CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA)
+            elif cipher == "aes128-sha256":
+                suites.append(CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256)
             elif cipher == "aes256":
                 suites.append(CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA)
+            elif cipher == "aes256-sha256":
+                suites.append(CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256)
             elif cipher == "rc4":
                 suites.append(CipherSuite.TLS_RSA_WITH_RC4_128_SHA)
+            elif cipher == "rc4-md5":
+                suites.append(CipherSuite.TLS_RSA_WITH_RC4_128_MD5)
             elif cipher == "3des":
                 suites.append(CipherSuite.TLS_RSA_WITH_3DES_EDE_CBC_SHA)
         return suites
@@ -217,14 +232,26 @@ class CipherSuite:
     aes128Suites.append(TLS_RSA_WITH_AES_128_CBC_SHA)
     aes128Suites.append(TLS_DH_ANON_WITH_AES_128_CBC_SHA)
 
+    aes128sha256Suites = []
+    aes128sha256Suites.append(TLS_RSA_WITH_AES_128_CBC_SHA256)
+
     aes256Suites = []
     aes256Suites.append(TLS_SRP_SHA_WITH_AES_256_CBC_SHA)
     aes256Suites.append(TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA)
     aes256Suites.append(TLS_RSA_WITH_AES_256_CBC_SHA)
     aes256Suites.append(TLS_DH_ANON_WITH_AES_256_CBC_SHA)
 
+    aes256sha256Suites = []
+    aes256sha256Suites.append(TLS_RSA_WITH_AES_256_CBC_SHA256)
+
     rc4Suites = []
     rc4Suites.append(TLS_RSA_WITH_RC4_128_SHA)
+
+    rc4md5Suites = []
+    rc4md5Suites.append(TLS_RSA_WITH_RC4_128_MD5)
+
+    rc2Suites = []
+    rc2Suites.append(TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5)
 
 
 # The following faults are induced as part of testing.  The faultAlerts

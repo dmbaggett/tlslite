@@ -1,4 +1,7 @@
-# Author: Trevor Perrin
+# Authors: 
+#   Trevor Perrin
+#   Dave Baggett (Arcode Corporation) - Additional ciphers; refactored bit.
+#
 # See the LICENSE file for legal information regarding use of this file.
 
 """Class for setting handshake parameters."""
@@ -6,6 +9,12 @@
 from .constants import CertificateType
 from .utils import cryptomath
 from .utils import cipherfactory
+
+# NOTE: I put rc4 first because it actually works under SSLv3, unlike AES256... --dmb
+CIPHER_NAMES = ["rc4", "rc4-md5", "aes128", "aes256", "3des", "aes256-sha256", "aes128-sha256"]
+CIPHER_IMPLEMENTATIONS = ["openssl", "simple", "pycrypto", "python"]
+CERTIFICATE_TYPES = ["x509"]
+
 
 class HandshakeSettings:
     """This class encapsulates various parameters that can be used with
@@ -30,10 +39,10 @@ class HandshakeSettings:
     @type cipherNames: list
     @ivar cipherNames: The allowed ciphers, in order of preference.
 
-    The allowed values in this list are 'aes256', 'aes128', '3des', and
-    'rc4'.  If these settings are used with a client handshake, they
-    determine the order of the ciphersuites offered in the ClientHello
-    message.
+    The allowed values in this list are 'aes256-sha256', 'aes256', 
+    'aes128', 'aes128-sha256', '3des', 'rc4', and 'rc4-md5'. If these
+    settings are used with a client handshake, they determine the
+    order of the ciphersuites offered in the ClientHello message.
 
     If these settings are used with a server handshake, the server will
     choose whichever ciphersuite matches the earliest entry in this
@@ -43,16 +52,17 @@ class HandshakeSettings:
     add-on library that supports 3DES, then '3des' will be silently
     removed.
 
-    The default value is ['rc4', 'aes256', 'aes128', '3des'].
+    The default value is ["rc4", "rc4-md5", "aes128", "aes256", "3des",
+    "aes256-sha256", "aes128-sha256"].
 
     @type certificateTypes: list
     @ivar certificateTypes: The allowed certificate types, in order of
     preference.
 
-    The allowed values in this list are 'x509'.  This
-    list is only used with a client handshake.  The client will
-    advertise to the server which certificate types are supported, and
-    will check that the server uses one of the appropriate types.
+    The only allowed certificate type is 'x509'.  This list is only used with a
+    client handshake.  The client will advertise to the server which certificate
+    types are supported, and will check that the server uses one of the
+    appropriate types.
 
     @type minVersion: tuple
     @ivar minVersion: The minimum allowed SSL/TLS version.
@@ -81,9 +91,9 @@ class HandshakeSettings:
     def __init__(self):
         self.minKeySize = 1023
         self.maxKeySize = 8193
-        self.cipherNames = ["rc4", "aes256", "aes128", "3des"]
-        self.cipherImplementations = ["openssl", "pycrypto","python"]
-        self.certificateTypes = ["x509"]
+        self.cipherNames = CIPHER_NAMES
+        self.cipherImplementations = CIPHER_IMPLEMENTATIONS
+        self.certificateTypes = CERTIFICATE_TYPES
         self.minVersion = (3,0)
         self.maxVersion = (3,2)
         self.useExperimentalTackExtension = False
@@ -107,12 +117,16 @@ class HandshakeSettings:
         if len(other.certificateTypes)==0:
             raise ValueError("No supported certificate types")
 
+        other.cipherImplementations = list(self.cipherImplementations)
+        if not cryptomath.simplecryptoLoaded:
+            other.cipherImplementations = \
+                [e for e in other.cipherImplementations if e != "simple"]
         if not cryptomath.m2cryptoLoaded:
-            other.cipherImplementations = [e for e in \
-                other.cipherImplementations if e != "openssl"]
+            other.cipherImplementations = \
+                [e for e in other.cipherImplementations if e != "openssl"]
         if not cryptomath.pycryptoLoaded:
-            other.cipherImplementations = [e for e in \
-                other.cipherImplementations if e != "pycrypto"]
+            other.cipherImplementations = \
+                [e for e in other.cipherImplementations if e != "pycrypto"]
         if len(other.cipherImplementations)==0:
             raise ValueError("No supported cipher implementations")
 
@@ -125,13 +139,13 @@ class HandshakeSettings:
         if other.maxKeySize>16384:
             raise ValueError("maxKeySize too large")
         for s in other.cipherNames:
-            if s not in ("rc4", "aes256", "aes128", "3des"):
+            if s not in CIPHER_NAMES:
                 raise ValueError("Unknown cipher name: '%s'" % s)
         for s in other.cipherImplementations:
-            if s not in ("openssl", "python", "pycrypto"):
+            if s not in CIPHER_IMPLEMENTATIONS:
                 raise ValueError("Unknown cipher implementation: '%s'" % s)
         for s in other.certificateTypes:
-            if s not in ("x509"):
+            if s not in CERTIFICATE_TYPES:
                 raise ValueError("Unknown certificate type: '%s'" % s)
 
         if other.minVersion > other.maxVersion:

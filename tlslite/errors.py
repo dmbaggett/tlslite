@@ -1,4 +1,7 @@
-# Author: Trevor Perrin
+# Authors: 
+#   Trevor Perrin
+#   Dave Baggett (Arcode Corporation) - Added TLSUnsupportedError.
+#
 # See the LICENSE file for legal information regarding use of this file.
 
 """Exception classes.
@@ -15,6 +18,10 @@ class TLSError(Exception):
     def __str__(self):
         """"At least print out the Exception time for str(...)."""
         return repr(self)    
+
+class TLSClosedConnectionError(TLSError):
+    """An attempt was made to use the connection after it was closed."""
+    pass
 
 class TLSAbruptCloseError(TLSError):
     """The socket was closed without a proper TLS shutdown.
@@ -142,8 +149,10 @@ class TLSAuthorizationError(TLSAuthenticationError):
 class TLSValidationError(TLSAuthenticationError):
     """The Checker has determined that the other party's certificate
     chain is invalid."""
-    pass
-
+    def __init__(self, msg, info=None):
+        # Include a dict containing info about this validation failure
+        TLSAuthenticationError.__init__(self, msg)
+        self.info = info
 
 class TLSFaultError(TLSError):
     """The other party responded incorrectly to an induced fault.
@@ -152,4 +161,10 @@ class TLSFaultError(TLSError):
     TLSConnection's fault variable is set to induce some sort of
     faulty behavior, and the other party doesn't respond appropriately.
     """
+    pass
+
+
+class TLSUnsupportedError(TLSError):
+    """The implementation doesn't support the requested (or required)
+    capabilities."""
     pass

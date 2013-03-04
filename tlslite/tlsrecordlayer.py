@@ -2,6 +2,7 @@
 #   Trevor Perrin
 #   Google (adapted by Sam Rushing) - NPN support
 #   Martin von Loewis - python 3 port
+#   Dave Baggett (Arcode Corporation) - buffered send support
 #
 # See the LICENSE file for legal information regarding use of this file.
 
@@ -10,7 +11,7 @@ from __future__ import generators
 
 from .utils.compat import *
 from .utils.cryptomath import *
-from .utils.cipherfactory import createAES, createRC4, createTripleDES
+from .utils.cipherfactory import createAES, createRC4, createTripleDES, createRC2
 from .utils.codec import *
 from .errors import *
 from .messages import *
@@ -109,7 +110,8 @@ class TLSRecordLayer:
 
         #Buffers for processing messages
         self._handshakeBuffer = []
-        self._readBuffer = b""
+        self.clear_read_buffer()
+        self.clear_write_buffer()
 
         #Handshake digests
         self._handshake_md5 = hashlib.md5()
@@ -144,6 +146,13 @@ class TLSRecordLayer:
 
         #Fault we will induce, for testing purposes
         self.fault = None
+
+    def clear_read_buffer(self):
+        self._readBuffer = b''
+
+    def clear_write_buffer(self):
+        self._send_writer = None
+        self._send_block_in_progress = None
 
     #*********************************************************
     # Public Functions START
@@ -190,6 +199,9 @@ class TLSRecordLayer:
         @rtype: iterable
         @return: A generator; see above for details.
         """
+        if self.closed:
+            raise TLSClosedConnectionError("attempt to read from closed connection")
+
         try:
             while len(self._readBuffer)<min and not self.closed:
                 try:
@@ -202,22 +214,60 @@ class TLSRecordLayer:
                     if alert.description != AlertDescription.close_notify:
                         raise
                 except TLSAbruptCloseError:
-                    if not self.ignoreAbruptClose:
-                        raise
-                    else:
-                        self._shutdown(True)
+                    # Pass up to outer try...except
+                    raise
+                except socket.timeout as e:
+                    raise
+                except socket.error as e:
+                    raise
 
-            if max == None:
-                max = len(self._readBuffer)
 
-            returnBytes = self._readBuffer[:max]
-            self._readBuffer = self._readBuffer[max:]
-            yield bytes(returnBytes)
+            if self.closed:
+                if len(self._readBuffer) == 0:
+                    raise TLSClosedConnectionError(
+                        "attempt to read from closed connection when buffer is empty")
+
+            # Fall through to code blow execpt clauses....
+
         except GeneratorExit:
+            #
+            # The caller has allow this generator to be garbage collected, and
+            # can no longer receive results; just return.
+            #
+            return
+        except socket.timeout:
+            # Just pass timeouts up to the caller
             raise
+        except TLSClosedConnectionError:
+            #
+            # Pass this through silently; we don't need to shut down the
+            # connection, because it's already closed.
+            #
+            pass
+        except TLSAbruptCloseError:
+            if not self.ignoreAbruptClose:
+                raise
+            else:
+                self._shutdown(True)
+
         except:
             self._shutdown(False)
             raise
+
+        if max == None:
+            max = len(self._readBuffer)
+
+        returnBytes = self._readBuffer[:max]
+        self._readBuffer = self._readBuffer[max:]
+        yield bytes(returnBytes)
+
+    def unread(self, bytez):
+        """Add bytes to the front of the socket read buffer for future
+        reading. Be careful using this in the context of select(...): if you
+        unread the last data from a socket, that won't wake up selected waiters,
+        and those waiters may hang forever.
+        """
+        self._readBuffer = bytez + self._readBuffer
 
     def write(self, s):
         """Write some data to the TLS connection.
@@ -248,7 +298,7 @@ class TLSRecordLayer:
         """
         try:
             if self.closed:
-                raise ValueError()
+                raise TLSClosedConnectionError("attempt to write to closed connection")
 
             index = 0
             blockSize = 16384
@@ -267,8 +317,22 @@ class TLSRecordLayer:
                     yield result
                 randomizeFirstBlock = False #only on 1st message
                 index += 1
-        except GeneratorExit:
+        except socket.timeout:
+            # Just pass timeouts up to the caller
             raise
+        except GeneratorExit:
+            #
+            # The caller has allow this generator to be garbage collected, and
+            # can no longer receive results; just return.
+            #
+            return
+        except TLSClosedConnectionError:
+            raise
+        except TLSAbruptCloseError:
+            if not self.ignoreAbruptClose:
+                raise
+            else:
+                self._shutdown(True)
         except:
             self._shutdown(False)
             raise
@@ -316,6 +380,13 @@ class TLSRecordLayer:
         if not self.closed:
             for result in self._decrefAsync():
                 yield result
+
+        #
+        # Clear the read/write buffers so we don't later use bytes buffered from
+        # an earlier connection.
+        #
+        self.clear_read_buffer()
+        self.clear_write_buffer()
 
     def _decrefAsync(self):
         self._refCount -= 1
@@ -391,16 +462,103 @@ class TLSRecordLayer:
             return None
         return self._writeState.encContext.implementation
 
-
-
     #Emulate a socket, somewhat -
     def send(self, s):
-        """Send data to the TLS connection (socket emulation).
+        """Send data to the TLS connection. Returns the number of bytes actually written.
 
         @raise socket.error: If a socket error occurs.
         """
-        self.write(s)
-        return len(s)
+        if self.closed:
+            raise TLSClosedConnectionError("attempt to write to closed connection")
+
+        #
+        # This is subtle. The number of bytes written over the raw socket isn't
+        # the same as the number of bytes the caller has asked to send, since
+        # the data to be sent must be packaged into records. So we need a policy
+        # here: given that we sent K records corresponding to N bytes of the
+        # (unpackaged) data and only part of next next record, what should we
+        # return here?
+        #
+        # The answer is N, as long as we save state between invocations and
+        # anticipate that the only valid thing for the caller to do with the
+        # next call is try to send the remaining data. When the caller does
+        # that, we need to finish sending the record that was in progress, then
+        # resume sending the data provided by the user. The data should begin
+        # with the unpackaged text corresponding to the just-completed record,
+        # so we need to skip it when we resume sending.
+        #
+
+        # Are we in the middle of sending a record?
+        if self._send_block_in_progress:
+            #
+            # The data the caller wants to send should start with the data we're
+            # already in the process of sending, otherwise the caller is doing
+            # something wrong.
+            #
+            if not s.startswith(self._send_block_in_progress):
+                raise TLSError("attempt to send new data while send of " \
+                                   "earlier data is still in progress")
+
+        blockSize = 16384
+        written = 0
+        index = 0
+
+        try:
+            while True:
+                #
+                # Start at the first byte not yet written and write up to the
+                # maximum blocksize.
+                #
+                startIndex = written
+
+                # Have we written all the data? If so, return.
+                if startIndex == len(s):
+                    assert written == len(s)
+                    self._send_block_in_progess = None
+                    return written
+
+                #
+                # Don't run off the end of the data; send a shorter block at the
+                # end instead:
+                #
+                endIndex = min(written + blockSize, len(s))
+
+                if self._send_block_in_progress:
+                    #
+                    # We're in the middle of sending the initial block of the
+                    # caller's data. We'll try to finish sending it using the
+                    # same writer we were using before.
+                    #
+                    assert self._send_writer
+                else:
+                    # We're sending a new block; create a new writer
+                    block = bytearray(s[startIndex : endIndex])
+                    applicationData = ApplicationData().create(block)
+                    self._send_writer = self._sendMsg(
+                        applicationData,
+                        randomizeFirstBlock)
+
+                for result in self._send_writer:
+                    #
+                    # We didn't complete writing this block. Tell the caller how
+                    # much data we did write so the caller will know what
+                    # portion of the data still needs to be written.
+                    #
+                    return written
+
+                written += len(self._send_block_in_progress)
+                self._send_writer = None # Make sure the writer is GCed
+                self._send_block_in_progress = None
+        except socket.timeout:
+            # Just pass timeouts up to the caller
+            raise
+        except TLSClosedConnectionError:
+            # pass this through silently; we don't need to close the connection,
+            # because it's already closed
+            pass
+        except:
+            self._shutdown(False)
+            raise
 
     def sendall(self, s):
         """Send data to the TLS connection (socket emulation).
@@ -487,6 +645,11 @@ class TLSRecordLayer:
     def _shutdown(self, resumable):
         self._writeState = _ConnectionState()
         self._readState = _ConnectionState()
+        #
+        # Note that we leave the read buffer as-is here, so reads can occur
+        # after an abrupt shutdown by the peer. We clear the read buffer when we
+        # connect instead.
+        #
         #Don't do this: self._readBuffer = ""
         self.version = (0,0)
         self._versionCheck = False
@@ -596,7 +759,7 @@ class TLSRecordLayer:
             try:
                 bytesSent = self.sock.send(s) #Might raise socket.error
             except socket.error as why:
-                if why.args[0] == errno.EWOULDBLOCK:
+                if why.args[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                     yield 1
                     continue
                 else:
@@ -814,7 +977,7 @@ class TLSRecordLayer:
             try:
                 s = self.sock.recv(recordHeaderLength-len(b))
             except socket.error as why:
-                if why.args[0] == errno.EWOULDBLOCK:
+                if why[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                     yield 0
                     continue
                 else:
@@ -854,7 +1017,7 @@ class TLSRecordLayer:
             try:
                 s = self.sock.recv(r.length - len(b))
             except socket.error as why:
-                if why.args[0] == errno.EWOULDBLOCK:
+                if why[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                     yield 0
                     continue
                 else:
@@ -1029,26 +1192,56 @@ class TLSRecordLayer:
 
     def _calcPendingStates(self, cipherSuite, masterSecret,
             clientRandom, serverRandom, implementations):
+        major_version, minor_version = self.version
+        assert major_version == 3
         if cipherSuite in CipherSuite.aes128Suites:
-            macLength = 20
+            macLength = 20 # SHA1: 160 bit MAC
+            keyLength = 16
+            ivLength = 16
+            digestmod = hashlib.sha1
+            createCipherFunc = createAES
+        elif self.session.cipherSuite in CipherSuite.aes128sha256Suites and minor_version >= 2:
+            macLength = 32 # SHA256: 256 bit MAC
             keyLength = 16
             ivLength = 16
             createCipherFunc = createAES
+            digestmod = hashlib.sha256
         elif cipherSuite in CipherSuite.aes256Suites:
-            macLength = 20
+            macLength = 20 # SHA1: 160 bit MAC
             keyLength = 32
             ivLength = 16
+            digestmod = hashlib.sha1
+            createCipherFunc = createAES
+        elif self.session.cipherSuite in CipherSuite.aes256sha256Suites and minor_version >= 2:
+            macLength = 32 # SHA256: 256 bit MAC
+            keyLength = 32
+            ivLength = 16
+            digestmod = hashlib.sha256
             createCipherFunc = createAES
         elif cipherSuite in CipherSuite.rc4Suites:
             macLength = 20
             keyLength = 16
             ivLength = 0
+            digestmod = hashlib.sha1
+            createCipherFunc = createRC4
+        elif self.session.cipherSuite in CipherSuite.rc4md5Suites:
+            macLength = 16 # MD5: 128 bit MAC
+            keyLength = 16
+            ivLength = 0
+            digestmod = hashlib.md5
             createCipherFunc = createRC4
         elif cipherSuite in CipherSuite.tripleDESSuites:
             macLength = 20
             keyLength = 24
             ivLength = 8
+            digestmod = hashlib.sha1
             createCipherFunc = createTripleDES
+        elif self.session.cipherSuite in CipherSuite.rc2Suites:
+            macLength = 16 # MD5: 128 bit MAC
+            keyLength = 5
+            ivLength = 0
+            createCipherFunc = createRC2
+            digestmod = hashlib.md5
         else:
             raise AssertionError()
 
@@ -1082,8 +1275,11 @@ class TLSRecordLayer:
         serverKeyBlock = p.getFixBytes(keyLength)
         clientIVBlock  = p.getFixBytes(ivLength)
         serverIVBlock  = p.getFixBytes(ivLength)
-        clientPendingState.macContext = createMACFunc(compatHMAC(clientMACBlock))
-        serverPendingState.macContext = createMACFunc(compatHMAC(serverMACBlock))
+
+        clientPendingState.macContext = createMACFunc(
+            compatHMAC(clientMACBlock), digestmod=digestmod)
+        serverPendingState.macContext = createMACFunc(
+            compatHMAC(serverMACBlock), digestmod=digestmod)
         clientPendingState.encContext = createCipherFunc(clientKeyBlock,
                                                          clientIVBlock,
                                                          implementations)

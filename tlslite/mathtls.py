@@ -1,4 +1,7 @@
-# Author: Trevor Perrin
+# Authors: 
+#   Trevor Perrin
+#   Dave Baggett (Arcode Corporation) - MD5 support for MAC_SSL
+#
 # See the LICENSE file for legal information regarding use of this file.
 
 """Miscellaneous helper functions."""
@@ -107,19 +110,23 @@ def makeK(N, g):
 def createHMAC(k):
     return hmac.HMAC(k, digestmod=hashlib.sha1)
 
-def createMAC_SSL(k):
+def createMAC_SSL(k, digestmod=None):
     mac = MAC_SSL()
-    mac.create(k)
+    mac.create(k, digestmod=digestmod)
     return mac
 
 
-class MAC_SSL:
-    def __init__(self):
-        self.digest_size = 20
-        
-    def create(self, k):
-        self.ohash = hashlib.sha1(k + (b"\x5C" * 40))
-        self.ihash = hashlib.sha1(k + (b"\x36" * 40))
+class MAC_SSL(object):
+    def create(self, k, digestmod=None):
+        self.digestmod = digestmod or hashlib.sha1
+        # Repeat pad bytes 48 times for MD5; 40 times for other hash functions.
+        self.digest_size = 48 if (self.digestmod is hashlib.md5) else 40
+        repeat = 40 if self.digest_size == 20 else 48
+        opad = b"\x5C" * repeat
+        ipad = b"\x36" * repeat
+
+        self.ohash = self.digestmod(k + opad)
+        self.ihash = self.digestmod(k + ipad)
 
     def update(self, m):
         self.ihash.update(m)
@@ -128,6 +135,8 @@ class MAC_SSL:
         new = MAC_SSL()
         new.ihash = self.ihash.copy()
         new.ohash = self.ohash.copy()
+        new.digestmod = self.digestmod
+        new.digest_size = self.digest_size
         return new
 
     def digest(self):

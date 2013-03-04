@@ -24,6 +24,12 @@ if cryptomath.pycryptoLoaded:
     from tlslite.utils import pycrypto_tripledes
     tripleDESPresent = True
 
+if cryptomath.simplecryptoLoaded:
+    from tlslite.utils import simple_aes
+    from tlslite.utils import simple_rc4
+    from tlslite.utils import simple_rc2
+    # no 3DES implementation
+
 # **************************************************************************
 # Factory Functions for AES
 # **************************************************************************
@@ -41,11 +47,13 @@ def createAES(key, IV, implList=None):
     @return: An AES object.
     """
     if implList == None:
-        implList = ["openssl", "pycrypto", "python"]
+        implList = ["openssl", "simple", "pycrypto", "python"]
 
     for impl in implList:
         if impl == "openssl" and cryptomath.m2cryptoLoaded:
             return openssl_aes.new(key, 2, IV)
+        elif impl == "simple" and cryptomath.simplecryptoLoaded:
+            return simple_aes.new(key, 2, IV)
         elif impl == "pycrypto" and cryptomath.pycryptoLoaded:
             return pycrypto_aes.new(key, 2, IV)
         elif impl == "python":
@@ -65,13 +73,15 @@ def createRC4(key, IV, implList=None):
     @return: An RC4 object.
     """
     if implList == None:
-        implList = ["openssl", "pycrypto", "python"]
+        implList = ["openssl", "simple", "pycrypto", "python"]
 
     if len(IV) != 0:
         raise AssertionError()
     for impl in implList:
         if impl == "openssl" and cryptomath.m2cryptoLoaded:
             return openssl_rc4.new(key)
+        elif impl == "simple" and cryptomath.simplecryptoLoaded:
+            return simple_rc4.new(key)
         elif impl == "pycrypto" and cryptomath.pycryptoLoaded:
             return pycrypto_rc4.new(key)
         elif impl == "python":
@@ -99,4 +109,26 @@ def createTripleDES(key, IV, implList=None):
             return openssl_tripledes.new(key, 2, IV)
         elif impl == "pycrypto" and cryptomath.pycryptoLoaded:
             return pycrypto_tripledes.new(key, 2, IV)
+    raise NotImplementedError()
+
+def createRC2(key, IV, implList=None):
+    """Create a new RC2 object.
+
+    @type key: str
+    @param key: A 5 to 256 byte string.
+
+    @type IV: object
+    @param IV: Ignored, whatever it is.
+
+    @rtype: L{tlslite.utils.RC2}
+    @return: An RC2 object.
+    """
+    if implList is None:
+        implList = ["simple"]
+
+    if len(IV) != 0:
+        raise AssertionError()
+    for impl in implList:
+        if impl == "simple" and cryptomath.simplecryptoLoaded:
+            return simple_rc2.new(key)
     raise NotImplementedError()
