@@ -90,8 +90,6 @@ class _X509(object):
         #Create a public key instance
         self._publicKey = _createPublicRSAKey(self.modulus, self.publicExponent)
 
-        print("publicKey = %s" % repr(self._publicKey))
-
     def getDER(self):
         "Return the raw ASN.1 bytes for this certificate."
         return self._bytes

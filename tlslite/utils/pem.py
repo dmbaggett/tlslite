@@ -34,7 +34,7 @@ def dePem(s, name="CERTIFICATE"):
     retBytes = a2b_base64(s) # May raise SyntaxError
     return retBytes
     
-def dePemList(s, name):
+def dePemList(s, name="CERTIFICATE"):
     """Decode a sequence of PEM blocks into a list of bytearrays.
 
     The input must contain any number of PEM blocks, each with the appropriate
@@ -72,7 +72,7 @@ def dePemList(s, name):
         bList.append(retBytes)
         s = s[end+len(postfix) : ]
 
-def pem(b, name):
+def pem(b, name="CERTIFICATE"):
     """Encode a payload bytearray into a PEM string.
     
     The input will be base64 encoded, then wrapped in a PEM prefix/postfix

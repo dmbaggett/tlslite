@@ -28,12 +28,13 @@ class Checker:
                  x509RootCerts=None,
                  x509CommonNames=None,
                  checkResumedSession=False,
+                 skipCommonNameCheck=False,
                  callback=None,
                  callbackInfo=None):
         """Create a new Checker instance.
 
         For any certs to pass, you must pass in one or both of these arguments:
-         - x509Fingerprint
+         - x509Fingerprints
          - x509RootCerts
 
         @type x509Fingerprints: iterable of str
@@ -72,7 +73,7 @@ class Checker:
         application-specific purposes.
         """
 
-        self.x509Fingerprint = x509Fingerprint
+        self.x509Fingerprints = x509Fingerprints
         self.x509RootCerts = x509RootCerts
         self.x509CommonNames = x509CommonNames if hasattr(x509CommonNames, '__iter__') else { x509CommonNames }
         self.skipCommonNameCheck = skipCommonNameCheck
@@ -98,16 +99,11 @@ class Checker:
         if not self.checkResumedSession and connection.resumed:
             return
 
-        if getattr(connection, 'session'):
-            raise TLSValidationError("no session to validate")
-
         # Get the cert chain to validate, depending on our role
-        if hasattr(connection.session, 'serverCertChain'):
+        if connection._client:
             chain = connection.session.serverCertChain
-        elif hasattr(connection.session, 'clientCertChain'):
-            chain = connection.session.clientCertChain
         else:
-            raise TLSValidationError("can't find the certificate chain to validate")
+            chain = connection.session.clientCertChain
 
         if isinstance(chain, X509CertChain):
             self.validation_info = chain.validate(

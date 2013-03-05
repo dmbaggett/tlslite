@@ -263,7 +263,7 @@ def clientTestCmd(argv):
             htmlBody = bytearray(open(os.path.join(dir, "index.html")).read(), "utf-8")
             fingerprint = None
             for y in range(2):
-                checker =Checker(x509Fingerprint=fingerprint)
+                checker =Checker(x509Fingerprints=[fingerprint])
                 h = HTTPTLSConnection(\
                         address[0], address[1], checker=checker)
                 for x in range(3):
