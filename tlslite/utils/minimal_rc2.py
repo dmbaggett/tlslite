@@ -1,6 +1,6 @@
-"Minimal implementation of RC2; this just uses separated-out code from pycrypto."
+"tlscrypto implementation of RC2; this just uses separated-out code from pycrypto."
 try:
-    import _ARC2
+    from tlscrypto import _ARC2
 except ImportError:
     _ARC2 = None
 
@@ -9,11 +9,11 @@ if _ARC2:
     from .rc2 import rc2
 
     def new(key):
-        return Minimal_RC2(key)
+        return tlscrypto_rc2(key)
 
-    class Minimal_RC2(RC2):
+    class tlscrypto_rc2(RC2):
         def __init__(self, key):
-            RC2.__init__(self, key, "minimal")
+            RC2.__init__(self, key, "tlscrypto")
             key = bytes(key)
             self.context = _ARC2.new(key)
 

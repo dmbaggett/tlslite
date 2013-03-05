@@ -42,13 +42,13 @@ try:
 except ImportError:
     pycryptoLoaded = False
 
-# Try to load minimal crypto C extensions
+# Try to load tlscrypto crypto C extensions
 try:
     import _AES
     import _RC4
-    minimalcryptoLoaded = True
+    tlscryptoLoaded = True
 except ImportError:
-    minimalcryptoLoaded = False
+    tlscryptoLoaded = False
 
 
 # **************************************************************************

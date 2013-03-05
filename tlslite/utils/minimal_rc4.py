@@ -1,4 +1,4 @@
-"Minimal implementation of RC4; this just uses separated-out code from pycrypto."
+"tlscrypto implementation of RC4; this just uses separated-out code from pycrypto."
 try:
     import _ARC4
 except ImportError:
@@ -9,11 +9,11 @@ if _ARC4:
     from .rc4 import *
 
     def new(key):
-        return Minimal_RC4(key)
+        return tlscrypto_rc4(key)
 
-    class Minimal_RC4(RC4):
+    class tlscrypto_rc4(RC4):
         def __init__(self, key):
-            RC4.__init__(self, key, "minimal")
+            RC4.__init__(self, key, "tlscrypto")
             key = bytes(key)
             self.context = _ARC4.new(key)
 

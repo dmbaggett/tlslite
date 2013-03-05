@@ -12,7 +12,7 @@ from .utils import cipherfactory
 
 # NOTE: I put rc4 first because it actually works under SSLv3, unlike AES256... --dmb
 CIPHER_NAMES = ["rc4", "rc4-md5", "aes128", "aes256", "3des", "aes256-sha256", "aes128-sha256"]
-CIPHER_IMPLEMENTATIONS = ["openssl", "minimal", "pycrypto", "python"]
+CIPHER_IMPLEMENTATIONS = ["openssl", "tlscrypto", "pycrypto", "python"]
 CERTIFICATE_TYPES = ["x509"]
 
 
@@ -118,9 +118,9 @@ class HandshakeSettings:
             raise ValueError("No supported certificate types")
 
         other.cipherImplementations = list(self.cipherImplementations)
-        if not cryptomath.minimalcryptoLoaded:
+        if not cryptomath.tlscryptoLoaded:
             other.cipherImplementations = \
-                [e for e in other.cipherImplementations if e != "minimal"]
+                [e for e in other.cipherImplementations if e != "tlscrypto"]
         if not cryptomath.m2cryptoLoaded:
             other.cipherImplementations = \
                 [e for e in other.cipherImplementations if e != "openssl"]
