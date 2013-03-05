@@ -268,7 +268,6 @@ def serverCmd(argv):
 
     class MyHTTPServer(ThreadingMixIn, TLSSocketServerMixIn, HTTPServer):
         def handshake(self, connection):
-            print("About to handshake...")
             activationFlags = 0
             if tacks:
                 if len(tacks) == 1:

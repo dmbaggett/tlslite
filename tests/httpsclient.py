@@ -35,7 +35,7 @@ if __name__ == '__main__':
     if args.nocheck is None:
         args.nocheck = True if args.server == 'localhost' else False
 
-    if args.nocheck is None:
+    if args.nocheck:
         checker = None
     else:
         # Define a callback function for validation failures
