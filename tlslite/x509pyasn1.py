@@ -420,7 +420,7 @@ class _X509(object):
 
     def parseBinary(self, binary):
         "Parse the ASN.1 BER data for the cert."
-	self.cert = der_decoder.decode(binary, asn1Spec=Certificate())[0]
+	self.cert = der_decoder.decode(bytes(binary), asn1Spec=Certificate())[0]
 
     def extensions(self):
         E = []
@@ -562,7 +562,7 @@ class _X509(object):
         return oidstr if as_oid else OIDS.get(oidstr, oidstr)
 
     def getSignatureValue(self):
-        return self.bits_to_string(
+        return self.bits_to_bytes(
             self.cert.getComponentByName('signatureValue'))
 
     def getPublicKeyInfo(self):
@@ -576,7 +576,7 @@ class _X509(object):
         algorithm = OIDS.get(oidstr, oidstr)
         subjectPublicKey = subPubKeyInfo\
             .getComponentByName('subjectPublicKey')
-        key = self.bits_to_string(subjectPublicKey)
+        key = self.bits_to_bytes(subjectPublicKey)
         D = {
             'algorithm_oid': oidstr,
             'algorithm': algorithm,
@@ -856,14 +856,14 @@ class _X509(object):
         (1, 1, 1, 1, 1, 1, 1, 1): chr(255)
         }
 
-    def bits_to_string(self, bits):
+    def bits_to_bytes(self, bits):
         "Convert an array of bits to the corresponding byte string."
         # Pad with zeroes to byte boundary
         bits = list(bits) + [0] * ((8 - len(bits) % 8) % 8)
         B = []
         for i in range(0, len(bits), 8):
-            B.append(self.BIT_PATTERN_TO_BYTE.get(tuple(bits[i:i+8])))
-        return ''.join(B)
+            B.append(bytes(self.BIT_PATTERN_TO_BYTE.get(tuple(bits[i:i+8]))))
+        return b''.join(B)
 
     def getTBSCertificateData(self):
         "Return the raw bytes of the ASN.1 DER tbsCertificate."
@@ -875,7 +875,7 @@ class _X509(object):
         digest info for this certificate. Memoized.
         """
         # Parse DigestInfo using BER decoder
-        di = ber_decoder.decode(data.tostring(), asn1Spec=DigestInfo())[0]
+        di = ber_decoder.decode(bytes(data), asn1Spec=DigestInfo())[0]
         digest_algorithm_oid = di.getComponentByName('digestAlgorithm')\
             .getComponentByName("algorithm").asTuple()
         oidstr = oid2str(digest_algorithm_oid)

@@ -174,10 +174,10 @@ class RSAKey(object):
             return None
         m = self._rawPrivateKeyOp(c)
         decBytes = numberToByteArray(m, numBytes(self.n))
-        # Check first two bytes (RFC 2313, Section 8.1)
+        # Check first two bytes
         if decBytes[0] != 0 or decBytes[1] != 2:
             return None
-        # Scan through for zero separator (RFC 2313, Section 8.1)
+        # Scan through for zero separator
         for x in range(1, len(decBytes)-1):
             if decBytes[x]== 0:
                 break
@@ -205,16 +205,20 @@ class RSAKey(object):
             return None
         m = self._rawPublicKeyOp(c)
         decBytes = numberToByteArray(m, numBytes(self.n))
+
         # Check first two bytes (RFC 2313, Section 8.1)
-        if decBytes[0] != 0 or decBytes[1] != 2:
+        if decBytes[0] != 0 or decBytes[1] not in (0, 1):
             return None
+
         # Scan through for zero separator (RFC 2313, Section 8.1)
         for x in range(1, len(decBytes)-1):
-            if decBytes[x]== 0:
+            if decBytes[x] == 0:
                 break
         else:
             return None
-        return decBytes[x+1:] #Return everything after the separator
+
+        # Return everything after the separator
+        return decBytes[x+1:]
 
     def _rawPrivateKeyOp(self, m):
         raise NotImplementedError()

@@ -26,7 +26,7 @@ def dePem(s, name="CERTIFICATE"):
     postfix = "-----END %s-----" % name    
     start = s.find(prefix)
     if start == -1:
-        raise SyntaxError("Missing PEM prefix")
+        raise SyntaxError("Missing PEM prefix (s = %s, data = %s)" % (s, prefix))
     end = s.find(postfix, start+len(prefix))
     if end == -1:
         raise SyntaxError("Missing PEM postfix")

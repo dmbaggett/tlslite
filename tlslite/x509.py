@@ -101,6 +101,7 @@ class X509(object):
         # Select implementation based on caller preference (or what we have)
         if implementation == "cx509":
             try:
+                raise ImportError() # testing
                 import x509cx509
                 self.x509 = x509cx509._X509()
             except ImportError:
@@ -126,6 +127,28 @@ class X509(object):
         # Parse the cert data
         if der:
 	    self.parse(der, pem=pem)
+
+        # Haven't attempted verification on this cert yet:
+        self.verified = None
+
+    @classmethod
+    def certListFromPEM(self, data, data_is_pathname=False):
+        """Return a list of certs corresponding to the PEM data provided; e.g., data read from
+        cacert.pem"""
+        from tlslite.utils.pem import dePemList
+        if data_is_pathname:
+            with open(data, "rb") as f:
+                pem = f.read()
+        else:
+             pem = data
+        certs_der_list = dePemList(pem)
+        certs = []
+        for der in certs_der_list:
+            try:
+                certs.append(X509(der=der, pem=False))
+            except Exception as e:
+                print("failed to parse cert: %s" % e)
+        return certs
 
     #
     # The following three property methods are provided for compatibility with
@@ -212,17 +235,6 @@ class X509(object):
         tampered with since it was encoded by the CA.
         """
         #
-        # If we've already decrypted the DigestInfo, just re-use what we stored
-        # to save time:
-        #
-        try:
-            if self.digest_info is not None and \
-                    self.digest_info.get('key').write() == key.write():
-                return self.digest_info
-        except:
-            raise TLSUnsupportedError("unsupported key type")
-
-        #
         # Get the signature algorithm (e.g., 'sha1WithRSAEncryption') and make
         # sure the encryption type is one we support (currently only RSA).
         #
@@ -244,9 +256,8 @@ class X509(object):
         #
         data = key.decryptUsingPublicExponent(signature)
         if data is None:
-            if other:
-                raise TLSUnsupportedError(
-                    "decrypted signatureValue data is in an unsupported format")
+            raise TLSUnsupportedError(
+                "decrypted signatureValue data is in an unsupported format")
             return False
 
         # Parse the decrypted DigestInfo ASN.1 data
@@ -340,9 +351,9 @@ class X509(object):
             # has been tampered with.
             #
             return cert.tbsDigest(hasher_factory) == digest
-        except:
-            print("WARNING: caught exception verifying cert; "
-                  "failing the cert even though it might be good")
+        except Exception as e:
+            print("WARNING: caught exception verifying cert (%s); "
+                  "failing the cert even though it might be good" % e)
             return False
                       
     def tbsDigest(self, hasher_factory):
