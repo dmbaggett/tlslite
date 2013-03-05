@@ -9,6 +9,13 @@ import calendar
 import hashlib
 import re
 
+#
+# Note: you can find pyasn1 on PyPI:
+#
+#   https://pypi.python.org/pypi/pyasn1
+#
+# This code has been tested with version 0.16.
+#
 import pyasn1.type.univ
 from pyasn1.type import tag,namedtype,namedval,univ,constraint,char,useful
 from pyasn1.codec.der import decoder as der_decoder
@@ -882,7 +889,11 @@ class _X509(object):
         digest_algorithm = OIDS.get(oidstr, oidstr)
         digest = str(di.getComponentByName("digest"))
 
-        # TBD: we don't handle algorithm parameters, but we should at least verify they are NULL
+        #
+        # TBD: we don't handle algorithm parameters, but we should at least
+        # verify they are NULL --dmb
+        #
+
         #digest_algorithm_parameters = di.getComponentByName('digestAlgorithm')\
         #    .getComponentByName("parameters")
         
