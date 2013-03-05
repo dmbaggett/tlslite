@@ -1,4 +1,4 @@
-"Simple implementation of AES; this just uses separated-out code from pycrypto."
+"Minimal implementation of AES; this just uses separated-out code from pycrypto."
 
 try:
     import _AES
@@ -22,11 +22,11 @@ if _AES:
         }
 
     def new(key, mode, IV):
-        return Simple_AES(key, mode, IV)
+        return Minimal_AES(key, mode, IV)
 
-    class Simple_AES(AES):
+    class Minimal_AES(AES):
         def __init__(self, key, mode, IV):
-            AES.__init__(self, key, mode, IV, "simple")
+            AES.__init__(self, key, mode, IV, "minimal")
             key = bytes(key)
             IV = bytes(IV)
             self.context = _AES.new(key, MODES.get(mode, "CBC"), IV)

@@ -42,6 +42,14 @@ try:
 except ImportError:
     pycryptoLoaded = False
 
+# Try to load minimal crypto C extensions
+try:
+    import _AES
+    import _RC4
+    minimalcryptoLoaded = True
+except ImportError:
+    minimalcryptoLoaded = False
+
 
 # **************************************************************************
 # PRNG Functions

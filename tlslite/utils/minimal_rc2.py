@@ -1,21 +1,21 @@
-"Simple implementation of RC4; this just uses separated-out code from pycrypto."
+"Minimal implementation of RC2; this just uses separated-out code from pycrypto."
 try:
-    import _ARC4
+    import _ARC2
 except ImportError:
-    _ARC4 = None
+    _ARC2 = None
 
-if _ARC4:
+if _ARC2:
     from .cryptomath import *
-    from .rc4 import *
+    from .rc2 import rc2
 
     def new(key):
-        return Simple_RC4(key)
+        return Minimal_RC2(key)
 
-    class Simple_RC4(RC4):
+    class Minimal_RC2(RC2):
         def __init__(self, key):
-            RC4.__init__(self, key, "simple")
+            RC2.__init__(self, key, "minimal")
             key = bytes(key)
-            self.context = _ARC4.new(key)
+            self.context = _ARC2.new(key)
 
         def encrypt(self, plaintext):
             "Encrypt plaintext."

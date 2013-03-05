@@ -419,6 +419,7 @@ class _X509(object):
         return state
 
     def parseBinary(self, binary):
+        "Parse the ASN.1 BER data for the cert."
 	self.cert = der_decoder.decode(binary, asn1Spec=Certificate())[0]
 
     def extensions(self):

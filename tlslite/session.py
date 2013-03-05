@@ -111,21 +111,6 @@ class Session:
 
         @rtype: str
         @return: The name of the cipher used with this connection.
-        Either 'aes128', 'aes256', 'rc4', or '3des'.
         """
-        if self.cipherSuite in CipherSuite.aes128Suites:
-            return "aes128"
-        elif self.cipherSuite in CipherSuite.aes128sha256Suites:
-            return "aes128-sha256"
-        elif self.cipherSuite in CipherSuite.aes256Suites:
-            return "aes256"
-        elif self.cipherSuite in CipherSuite.aes256sha256Suites:
-            return "aes256-sha256"
-        elif self.cipherSuite in CipherSuite.rc4Suites:
-            return "rc4"
-        elif self.cipherSuite in CipherSuite.rc4md5Suites:
-            return "rc4-md5"
-        elif self.cipherSuite in CipherSuite.tripleDESSuites:
-            return "3des"
-        else:
-            return None
+        return CipherSuite.canonicalCipherName(self.cipherSuite)
+

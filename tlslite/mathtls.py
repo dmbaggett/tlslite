@@ -107,8 +107,8 @@ def makeU(N, A, B):
 def makeK(N, g):
   return bytesToNumber(SHA1(numberToByteArray(N) + PAD(N, g)))
 
-def createHMAC(k):
-    return hmac.HMAC(k, digestmod=hashlib.sha1)
+def createHMAC(k, digestmod=hashlib.sha1):
+    return hmac.HMAC(k, digestmod=digestmod)
 
 def createMAC_SSL(k, digestmod=None):
     mac = MAC_SSL()

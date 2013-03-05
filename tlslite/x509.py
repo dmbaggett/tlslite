@@ -14,15 +14,12 @@ import re
 import hashlib
 import unicodedata
 import array
+from base64 import b64decode
 
 from .errors import *
 from .oids import OIDS, OID_short_names
-
-# Get fastest base64 decoder available
-try:
-    from b64 import b64decode
-except ImportError:
-    from base64 import base64decode
+from .utils.pem import dePem
+from .utils.keyfactory import _createPublicRSAKey
 
 # Get C implementations of other hash functions (if available)
 try:
@@ -87,16 +84,16 @@ OID_TO_HASHER_INFO = {
 class X509(object):
     """This class represents an X.509 certificate.
 
-    @type bytes: L{bytearray} of unsigned bytes
-    @ivar bytes: The DER-encoded ASN.1 certificate
+    @type der: L{bytearray} of unsigned bytes
+    @ivar der: The DER-encoded ASN.1 certificate
 
-    @type publicKey: L{tlslite.utils.rsakey.RSAKey}
-    @ivar publicKey: The subject public key from the certificate.
+    @type pem: boolean
+    @ivar pem: Is the certificate data encoded in PEM format?
 
-    @type subject: L{bytearray} of unsigned bytes
-    @ivar subject: The DER-encoded ASN.1 subject distinguished name.
+    @type implementation: str
+    @ivar implementation: preferred underlying parser implemenation
     """
-    def __init__(self, binary=False, implementation=None):
+    def __init__(self, der=None, pem=True, implementation=None):
         # Use cx509 extension (based on asn1c) if available; it's very fast:
         if implementation is None:
             implementation = "cx509"
@@ -124,11 +121,11 @@ class X509(object):
                 self.x509 = None
 
         if self.x509 is None:
-            raise TLSUnsupported("fatal: no X.509 parser available")
+            raise TLSUnsupportedError("fatal: no X.509 parser available")
 
         # Parse the cert data
-        if x509:
-	    self._parse(x509, binary=binary)
+        if der:
+	    self.parse(der, pem=pem)
 
     #
     # The following three property methods are provided for compatibility with
@@ -145,43 +142,13 @@ class X509(object):
     def publicKey(self):
         return self.getPublicKey()
 
-    @property
-    def subjectBytes(self):
-        return self.subject
-
-    def _parse(self, s, binary=False):
+    def parse(self, s, pem=True):
         """
-        Interpret the provided string as an X.509 certificate. If binary is
-        False, the data is assumed to be in PEM format; otherwise, the data is
-        assumed to be in ASN.1 BER format.
+        Interpret the provided string as an X.509 certificate. If pem is True
+        the data is assumed to be in PEM format; otherwise, the data is assumed
+        to be in binary ASN.1 BER format.
         """
-        if not binary:
-            start = True
-            certLines = []
-            for certLine in s.splitlines():
-                certLine = certLine.strip()
-                if start:
-                    if certLine == '-----BEGIN CERTIFICATE-----':
-                        start = False
-                        continue
-                if not start:
-                    if not certLine == '-----END CERTIFICATE-----':
-                        certLines.append(certLine)
-            converted = ''.join([
-                    b64decode(certLine) 
-                    for certLine in certLines
-                    ])
-        else:
-            try:
-                if isinstance(s, str):
-                    converted = s
-                elif isinstance(s, array.array):
-                    converted = s.tostring()
-                else:
-                    converted = str(s)
-            except:
-                converted = ""
-
+        converted = dePem(s, name="CERTIFICATE") if pem else bytearray(s)
         if self.x509:
             #
             # save the raw DER-format binary data; we'll need it for
@@ -190,9 +157,13 @@ class X509(object):
             self.cert_binary = converted
             self.x509.parseBinary(self.cert_binary)
 
+    def parseBinary(self, b):
+        "Parse cert from binary ASN.1 BER data."
+        return self.parse(b, pem=False)
+
     def __str__(self):
         "Return a human-readable string representation of the certificate."
-        return str(self.x509) if self.x509 else "<empty>"
+        return repr(self.x509) if self.x509 else "<empty>"
 
     def getFingerprint(self, hash="sha1"):
         """
@@ -214,7 +185,7 @@ class X509(object):
                 and 'modulus' in info \
                 and 'public_exponent' in info:
             return _createPublicRSAKey(info['modulus'], info['public_exponent'])
-        raise TLSUnsupported(
+        raise TLSUnsupportedError(
             "unsupported public key type (algorithm: %s, issuer: %s)"\
                 % (info.get('algorithm'), self.getIssuerAsText()))
 
@@ -249,7 +220,7 @@ class X509(object):
                     self.digest_info.get('key').write() == key.write():
                 return self.digest_info
         except:
-            raise TLSUnsupported("unsupported key type")
+            raise TLSUnsupportedError("unsupported key type")
 
         #
         # Get the signature algorithm (e.g., 'sha1WithRSAEncryption') and make
@@ -257,7 +228,7 @@ class X509(object):
         #
         algorithm = self.getSignatureAlgorithm()
         if not algorithm.lower().endswith("withrsaencryption"):
-            raise TLSUnsupported(
+            raise TLSUnsupportedError(
                 "TBSCertificate has unsupported signature algorithm %s"\
                     % algorithm)
 
@@ -274,7 +245,7 @@ class X509(object):
         data = key.decryptUsingPublicExponent(signature)
         if data is None:
             if other:
-                raise TLSUnsupported(
+                raise TLSUnsupportedError(
                     "decrypted signatureValue data is in an unsupported format")
             return False
 
@@ -304,7 +275,7 @@ class X509(object):
             try:
                 key = self.getPublicKey()
             except Exception as e:
-                print e
+                print(e)
                 return False
 
             digest_info = cert.getDigestInfo(key)
@@ -312,7 +283,7 @@ class X509(object):
             digest_algorithm = digest_info.get('algorithm_oid')
             digest_hash_info = OID_TO_HASHER_INFO.get(digest_algorithm)
             if not digest_hash_info:
-                print("unsupported DigestInfo algorithm %s"\ 
+                print("unsupported DigestInfo algorithm %s"\
                       % digest_algorithm)
                 return False
             

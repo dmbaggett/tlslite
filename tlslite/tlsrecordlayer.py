@@ -448,7 +448,7 @@ class TLSRecordLayer:
         """
         if not self._writeState.encContext:
             return None
-        return self._writeState.encContext.name
+        return CipherSuite.canonicalCipherName(self._writeState.encContext.cipher)
 
     def getCipherImplementation(self):
         """Get the name of the cipher implementation used with
@@ -1200,7 +1200,7 @@ class TLSRecordLayer:
             ivLength = 16
             digestmod = hashlib.sha1
             createCipherFunc = createAES
-        elif self.session.cipherSuite in CipherSuite.aes128sha256Suites and minor_version >= 2:
+        elif cipherSuite in CipherSuite.aes128sha256Suites and minor_version >= 2:
             macLength = 32 # SHA256: 256 bit MAC
             keyLength = 16
             ivLength = 16
@@ -1212,7 +1212,7 @@ class TLSRecordLayer:
             ivLength = 16
             digestmod = hashlib.sha1
             createCipherFunc = createAES
-        elif self.session.cipherSuite in CipherSuite.aes256sha256Suites and minor_version >= 2:
+        elif cipherSuite in CipherSuite.aes256sha256Suites and minor_version >= 2:
             macLength = 32 # SHA256: 256 bit MAC
             keyLength = 32
             ivLength = 16
@@ -1224,7 +1224,7 @@ class TLSRecordLayer:
             ivLength = 0
             digestmod = hashlib.sha1
             createCipherFunc = createRC4
-        elif self.session.cipherSuite in CipherSuite.rc4md5Suites:
+        elif cipherSuite in CipherSuite.rc4md5Suites:
             macLength = 16 # MD5: 128 bit MAC
             keyLength = 16
             ivLength = 0
@@ -1236,7 +1236,7 @@ class TLSRecordLayer:
             ivLength = 8
             digestmod = hashlib.sha1
             createCipherFunc = createTripleDES
-        elif self.session.cipherSuite in CipherSuite.rc2Suites:
+        elif cipherSuite in CipherSuite.rc2Suites:
             macLength = 16 # MD5: 128 bit MAC
             keyLength = 5
             ivLength = 0
@@ -1286,6 +1286,10 @@ class TLSRecordLayer:
         serverPendingState.encContext = createCipherFunc(serverKeyBlock,
                                                          serverIVBlock,
                                                          implementations)
+
+        # Save the cipher suite number for printing purposes
+        clientPendingState.encContext.cipher = cipherSuite
+        serverPendingState.encContext.cipher = cipherSuite
 
         #Assign new connection states to pending states
         if self._client:

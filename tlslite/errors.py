@@ -7,7 +7,8 @@
 """Exception classes.
 @sort: TLSError, TLSAbruptCloseError, TLSAlert, TLSLocalAlert, TLSRemoteAlert,
 TLSAuthenticationError, TLSNoAuthenticationError, TLSAuthenticationTypeError,
-TLSFingerprintError, TLSAuthorizationError, TLSValidationError, TLSFaultError
+TLSFingerprintError, TLSAuthorizationError, TLSValidationError, TLSFaultError,
+TLSUnsupportedError
 """
 
 from .constants import AlertDescription, AlertLevel

@@ -359,6 +359,10 @@ class Certificate(HandshakeMsg):
                 index += len(certBytes)+3
             if certificate_list:
                 self.certChain = X509CertChain(certificate_list)
+                try:
+                    print("self.certChain.x509List = %s" % self.certChain.x509List.getPublicKey())
+                except:
+                    print("self.certChain.x509List = %s" % self.certChain.x509List)
         else:
             raise AssertionError()
 

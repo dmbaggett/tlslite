@@ -253,6 +253,26 @@ class CipherSuite:
     rc2Suites = []
     rc2Suites.append(TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5)
 
+    @staticmethod
+    def canonicalCipherName(cipher):
+        "Return the canonical name of the cipher whose number is provided."
+        if cipher in CipherSuite.aes128Suites:
+            return "aes128"
+        elif cipher in CipherSuite.aes128sha256Suites:
+            return "aes128-sha256"
+        elif cipher in CipherSuite.aes256Suites:
+            return "aes256"
+        elif cipher in CipherSuite.aes256sha256Suites:
+            return "aes256-sha256"
+        elif cipher in CipherSuite.rc4Suites:
+            return "rc4"
+        elif cipher in CipherSuite.rc4md5Suites:
+            return "rc4-md5"
+        elif cipher in CipherSuite.tripleDESSuites:
+            return "3des"
+        else:
+            return None
+
 
 # The following faults are induced as part of testing.  The faultAlerts
 # dictionary describes the allowed alerts that may be triggered by these

@@ -9,7 +9,7 @@ import calendar
 import hashlib
 import re
 
-from.errors import TLSUnsupported
+from.errors import TLSUnsupportedError
 from .utils.asn1parser import ASN1Parser
 from .utils.keyfactory import _createPublicRSAKey
 from .utils.pem import *
@@ -41,7 +41,6 @@ class _X509(object):
         @type _bytes: str or L{bytearray} of unsigned _bytes
         @param _bytes: A DER-encoded X.509 certificate.
         """
-
         self._bytes = bytearray(_bytes)
         p = ASN1Parser(_bytes)
 
@@ -56,7 +55,7 @@ class _X509(object):
             subjectPublicKeyInfoIndex = 5
 
         #Get the subject
-        self.subject = tbsCertificateP.getChild_Bytes(\
+        self.subject = tbsCertificateP.getChildBytes(\
                            subjectPublicKeyInfoIndex - 1)
 
         #Get the subjectPublicKeyInfo
@@ -68,6 +67,9 @@ class _X509(object):
         rsaOID = algorithmP.value
         if list(rsaOID) != [6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 1, 5, 0]:
             raise SyntaxError("Unrecognized AlgorithmIdentifier")
+
+        self.algorithm_oid = "{ 1.2.840.113549.1.1.1 }"
+        self.algorithm = "rsaEncryption"
 
         #Get the subjectPublicKey
         subjectPublicKeyP = subjectPublicKeyInfoP.getChild(1)
@@ -82,57 +84,62 @@ class _X509(object):
         publicExponentP = subjectPublicKeyP.getChild(1)
 
         #Decode them into numbers
-        n = _bytesToNumber(modulusP.value)
-        e = _bytesToNumber(publicExponentP.value)
+        self.modulus = bytesToNumber(modulusP.value)
+        self.publicExponent = bytesToNumber(publicExponentP.value)
 
         #Create a public key instance
-        self._publicKey = _createPublicRSAKey(n, e)
+        self._publicKey = _createPublicRSAKey(self.modulus, self.publicExponent)
+
+        print("publicKey = %s" % repr(self._publicKey))
 
     def getDER(self):
         "Return the raw ASN.1 bytes for this certificate."
         return self._bytes
 
-    def getPublicKey(self):
-        "Return the public key for this certificate."
-        return self._publicKey
+    def getPublicKeyInfo(self):
+        "Return information about this certificate's public key."
+        return {
+            'algorithm_oid': self.algorithm_oid, 
+            'algorithm': self.algorithm,
+            'modulus': self.modulus,
+            'public_exponent': self.publicExponent,
+            'key': self._publicKey,
+            'keylen': len(self._publicKey)
+            }
 
     def extensions(self):
-        raise TLSUnsupported("can't get extensions with this implementation")
+        raise TLSUnsupportedError("can't get extensions with this implementation")
 
     def getVersion(self):
         "Return integral version of this certificate."
-        raise TLSUnsupported("can't get X509 version with this implementation")
+        raise TLSUnsupportedError("can't get X509 version with this implementation")
 
     def getNotBefore(self):
-        raise TLSUnsupported("can't get effective dates with this implementation")
+        raise TLSUnsupportedError("can't get effective dates with this implementation")
 
     def getNotAfter(self):
-        raise TLSUnsupported("can't get effective dates with this implementation")
+        raise TLSUnsupportedError("can't get effective dates with this implementation")
 
     def getIssuer(self):
         "Return a dict with information about the certificate issuer."
-        raise TLSUnsupported("can't get issuer with this implementation")
+        raise TLSUnsupportedError("can't get issuer with this implementation")
 
     def getSubject(self):
         "Return a dict with information about the certificate subject."
-        raise TLSUnsupported("can't get subject with this implementation")
+        raise TLSUnsupportedError("can't get subject with this implementation")
 
     def getSignatureAlgorithm(self, as_oid):
-        raise TLSUnsupported("can't get signature algorithm with this implementation")
+        raise TLSUnsupportedError("can't get signature algorithm with this implementation")
 
     def getSignatureValue(self):
-        raise TLSUnsupported("can't get signature value with this implementation")
-
-    def getPublicKeyInfo(self):
-        "Return a dict of info about the certificate's subject public key."
-        raise TLSUnsupported("can't get signature public key info with this implementation")
+        raise TLSUnsupportedError("can't get signature value with this implementation")
 
     def getTBSCertificateData(self):
         "Return the raw bytes of the ASN.1 DER tbsCertificate."
-        raise TLSUnsupported("can't get tbsCertificate component with this implementation")
+        raise TLSUnsupportedError("can't get tbsCertificate component with this implementation")
         return der_encoder.encode(self.cert.getComponentByName('tbsCertificate'))
 
     def parseDigestInfo(self, data):
         """Get the signature value field and decrypt and parse it to produce the
         digest info for this certificate."""
-        raise TLSUnsupported("can't parse DigestInfo with this implementation")
+        raise TLSUnsupportedError("can't parse DigestInfo with this implementation")

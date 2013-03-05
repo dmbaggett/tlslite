@@ -72,7 +72,7 @@ class X509CertChain:
             raise AssertionError()
         return self.x509List[0].getPublicKey()
 
-    def getFingerprint(self, hasfn="sha1"):
+    def getFingerprint(self, hashfn="sha1"):
         """Get the hex-encoded fingerprint of the end-entity certificate.
 
         @type hashfn: str
@@ -465,7 +465,7 @@ class X509CertChain:
                                 }
                             return
                         else:
-                            #print "certificate %s validated by cert %s" % (i, i + 1)
+                            #print("certificate %s validated by cert %s" % (i, i + 1))
                             pass
                     else: # first cert in chain (chain root)
                         parent = self._get_root_cert(x509, x509RootCerts)    
@@ -486,7 +486,7 @@ class X509CertChain:
                                     }
                                 return
     
-                        #print "Root cert CA:\n%s" % parent.prettyPrint()
+                        #print("Root cert CA:\n%s" % parent.prettyPrint())
 
                 #
                 # Check v3 certificate extensions.
@@ -653,7 +653,7 @@ class X509CertChain:
         except Exception as e:
             import sys
             import traceback
-            print "X509CertChain.validate: caught exception; traceback follows:"
+            print("X509CertChain.validate: caught exception; traceback follows:")
             traceback.print_exc(file=sys.stdout)
             result = { 
                 "success": False,
@@ -672,7 +672,7 @@ class X509CertChain:
                 else:
                     result = callback(result)
             self._set_result_flags(result)
-            #print "X509CertChain.validate returning %s" % result
+            #print("X509CertChain.validate returning %s" % result)
             return result
 
     # Mapping from hash length to hash type:
@@ -692,8 +692,8 @@ class X509CertChain:
         for hash in fingerprintHashes:
             cert_fingerprint = cert.getFingerprint(hash)
             if cert_fingerprint in x509Fingerprints:
-                #print "%s fingerprint of cert (%s) is in x509Fingerprints list" % \
-                    (hash, cert_fingerprint)
+                #print("%s fingerprint of cert (%s) is in x509Fingerprints list" % \
+                #(hash, cert_fingerprint))
                 return True
 
         # See if this cert is in the trusted certs list; just compare raw binary DER bytes.
@@ -722,8 +722,8 @@ class X509CertChain:
             if cert.verify():
                 return True
             else:
-                print "cert is in x509RootCerts, but the cert itself fails to verify, " \
-                    "so it's disallowed"
+                print("cert is in x509RootCerts, but the cert itself fails to verify, "
+                      "so it's disallowed")
                 return False
 
         return False
@@ -774,7 +774,7 @@ class X509CertChain:
                     if ca.verify(x509):
                         return ca
 
-            print "no CA cert found for issuer %s" % issuer
+            print("no CA cert found for issuer %s" % issuer)
         return None
 
     @staticmethod
@@ -787,9 +787,9 @@ class X509CertChain:
         parsed = []
         if unparsed and isinstance(unparsed[0], type(bytes())):
             for ca in unparsed:
-                # Create an X509 object by parsing the DER binary for this cert:
-                parsed.append(X509(ca, binary=True))
-            #print "parsed %s certs with issuer %s" % (len(parsed), issuer)
+                # Create an X509 object by parsing the raw DER binary for this cert:
+                parsed.append(X509(ca, pem=False))
+            #print("parsed %s certs with issuer %s" % (len(parsed), issuer))
             x509RootCerts[issuer] = parsed
         else:
             parsed = unparsed # already parsed earlier

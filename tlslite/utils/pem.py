@@ -7,7 +7,7 @@ import binascii
 #This code is shared with tackpy (somewhat), so I'd rather make minimal
 #changes, and preserve the use of a2b_base64 throughout.
 
-def dePem(s, name):
+def dePem(s, name="CERTIFICATE"):
     """Decode a PEM string into a bytearray of its payload.
     
     The input must contain an appropriate PEM prefix and postfix
