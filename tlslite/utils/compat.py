@@ -49,7 +49,7 @@ if sys.version_info >= (3,0):
         return base64.b32encode(b).decode("ascii")
         
     # Decodes all 256 byte values, use "ascii" for first 128
-    def bytesToStr(b, encoding="latin-1"):
+    def bytesToString(b, encoding="latin-1"):
         return b.decode(encoding)  
         
     def readStdinBinary():
@@ -89,6 +89,9 @@ else:
         
     def b2a_base32(b):
         return base64.b32encode(str(b))
+
+    def bytesToString(b, *args, **kw):
+        return str(b)
 
 import traceback
 def formatExceptionTrace(e):

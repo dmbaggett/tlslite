@@ -7,7 +7,7 @@
 import time
 import calendar
 from cx509 import cx509
-from utils.compat import * # for bytesToString
+from utils.compat import bytesToString
 
 class _X509(cx509):
     def parseBinary(self, binary):
@@ -58,7 +58,7 @@ class _X509(cx509):
         return self.get_signature_algorithm(as_oid)
 
     def getSignatureValue(self):
-        return self.get_signature_value()
+        return bytes(self.get_signature_value())
 
     def parseDigestInfo(self, data):
         return self.parse_digest_info(bytesToString(data))
@@ -67,4 +67,4 @@ class _X509(cx509):
         return self.get_public_key()
 
     def getTBSCertificateData(self):
-        return self.get_tbs_certificate_data()
+        return bytes(self.get_tbs_certificate_data())
