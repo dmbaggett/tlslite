@@ -21,16 +21,16 @@ from .oids import OIDS, OID_short_names
 from .utils.pem import dePem
 from .utils.keyfactory import _createPublicRSAKey
 
-# Get C implementations of other hash functions (if available)
+# Get C implementations of other hash functions from tlscrypto
 try:
     #raise ImportError # for testing
-    import _MD2
+    from tlscrypto import _MD2
 except ImportError:
     _MD2 = None
 
 try:
     #raise ImportError # for testing
-    import _MD4
+    from tlscrypto import _MD4
 except ImportError:
     _MD4 = None
 
