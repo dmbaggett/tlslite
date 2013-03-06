@@ -502,6 +502,7 @@ class TLSRecordLayer:
         blockSize = 16384
         written = 0
         index = 0
+        s = bytearray(s)
 
         try:
             while True:
@@ -531,18 +532,24 @@ class TLSRecordLayer:
                     #
                     assert self._send_writer
                 else:
-                    # We're sending a new block; create a new writer
-                    block = bytearray(s[startIndex : endIndex])
-                    applicationData = ApplicationData().create(block)
+                    #
+                    # We're sending a new block; create a new writer that writes
+                    # a copy of the bytearray (the writing process modifies the
+                    # bytearray passed in some cases).
+                    #
+                    self._send_block_in_progress = \
+                        s[startIndex:endIndex]
+                    applicationData = ApplicationData() \
+                        .create(bytearray(self._send_block_in_progress))
                     self._send_writer = self._sendMsg(
                         applicationData,
-                        randomizeFirstBlock)
+                        randomizeFirstBlock=False)
 
                 for result in self._send_writer:
                     #
                     # We didn't complete writing this block. Tell the caller how
-                    # much data we did write so the caller will know what
-                    # portion of the data still needs to be written.
+                    # much data we wrote prior to this block so the caller will
+                    # know what portion of the data still needs to be written.
                     #
                     return written
 
