@@ -81,12 +81,10 @@ def createRC4(key, IV, implList=None):
         if impl == "openssl" and cryptomath.m2cryptoLoaded:
             return openssl_rc4.new(key)
         elif impl == "tlscrypto" and cryptomath.tlscryptoLoaded:
-            print("using tlscrypto")
             return tlscrypto_rc4.new(key)
         elif impl == "pycrypto" and cryptomath.pycryptoLoaded:
             return pycrypto_rc4.new(key)
         elif impl == "python":
-            print("using python")
             return python_rc4.new(key)
     raise NotImplementedError()
 
