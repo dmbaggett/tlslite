@@ -36,6 +36,12 @@ try:
 except ImportError:
     pass
 
+# DEBUG (dmb)
+#sys.path = [
+#    "/Users/dmb/inky-core/deps/thirdpary-tlslite", 
+#    "/Users/dmb/inky-core/python/local-install/osx/2.7/lib/python2.7/site-packages/tlscrypto"
+#    ] + sys.path
+
 def printUsage(s=None):
     if s:
         print("ERROR: %s" % s)

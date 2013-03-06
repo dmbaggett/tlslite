@@ -6,7 +6,7 @@ except ImportError:
 
 if _ARC2:
     from .cryptomath import *
-    from .rc2 import rc2
+    from .rc2 import RC2
 
     def new(key):
         return tlscrypto_rc2(key)

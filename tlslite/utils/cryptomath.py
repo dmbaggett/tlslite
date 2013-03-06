@@ -44,12 +44,13 @@ except ImportError:
 
 # Try to load tlscrypto crypto C extensions
 try:
-    import _AES
-    import _ARC2
-    import _ARC4
+    from tlscrypto import _AES
+    from tlscrypto import _ARC2
+    from tlscrypto import _ARC4
     tlscryptoLoaded = True
-except ImportError:
+except ImportError as e:
     tlscryptoLoaded = False
+    print("failed to load tlscrypto: %s" % e)
 
 
 # **************************************************************************
