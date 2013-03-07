@@ -237,14 +237,17 @@ class TLSRecordLayer:
             return
         except socket.timeout:
             # Just pass timeouts up to the caller
+            self._shutdown(False)
             raise
         except TLSClosedConnectionError:
             #
             # Pass this through silently; we don't need to shut down the
             # connection, because it's already closed.
             #
+            self._shutdown(False)
             pass
         except TLSAbruptCloseError:
+            self._shutdown(False)
             if not self.ignoreAbruptClose:
                 raise
             else:
@@ -327,9 +330,11 @@ class TLSRecordLayer:
             #
             return
         except TLSClosedConnectionError:
+            self._shutdown(False)
             raise
         except TLSAbruptCloseError:
             if not self.ignoreAbruptClose:
+                self._shutdown(False)
                 raise
             else:
                 self._shutdown(True)
@@ -830,7 +835,6 @@ class TLSRecordLayer:
 
                 #If we received an unexpected record type...
                 if recordHeader.type not in expectedType:
-
                     #If we received an alert...
                     if recordHeader.type == ContentType.alert:
                         alert = Alert().parse(p)
@@ -984,7 +988,7 @@ class TLSRecordLayer:
             try:
                 s = self.sock.recv(recordHeaderLength-len(b))
             except socket.error as why:
-                if why[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
+                if why.args[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                     yield 0
                     continue
                 else:
@@ -1024,7 +1028,7 @@ class TLSRecordLayer:
             try:
                 s = self.sock.recv(r.length - len(b))
             except socket.error as why:
-                if why[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
+                if why.args[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
                     yield 0
                     continue
                 else:
@@ -1103,7 +1107,6 @@ class TLSRecordLayer:
 
     def _decryptRecord(self, recordType, b):
         if self._readState.encContext:
-
             #Decrypt if it's a block cipher
             if self._readState.encContext.isBlockCipher:
                 blockLength = self._readState.encContext.block_size

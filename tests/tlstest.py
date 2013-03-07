@@ -26,7 +26,7 @@ from tlslite import TLSConnection, Fault, HandshakeSettings, \
     X509, X509CertChain, IMAP4_TLS, VerifierDB, Session, SessionCache, \
     parsePEMKey, \
     AlertDescription, HTTPTLSConnection, TLSSocketServerMixIn, \
-    POP3_TLS, m2cryptoLoaded, pycryptoLoaded, gmpyLoaded, tackpyLoaded, \
+    POP3_TLS, m2cryptoLoaded, tlscryptoLoaded, pycryptoLoaded, gmpyLoaded, tackpyLoaded, \
     Checker, __version__
 
 from tlslite.errors import *
@@ -263,7 +263,8 @@ def clientTestCmd(argv):
             htmlBody = bytearray(open(os.path.join(dir, "index.html")).read(), "utf-8")
             fingerprint = None
             for y in range(2):
-                checker =Checker(x509Fingerprints=[fingerprint])
+                # don't check cert unless we provide a fingerprint --dmb
+                checker = Checker(x509Fingerprints=[fingerprint]) if fingerprint else None
                 h = HTTPTLSConnection(\
                         address[0], address[1], checker=checker)
                 for x in range(3):
@@ -285,6 +286,8 @@ def clientTestCmd(argv):
     implementations = []
     if m2cryptoLoaded:
         implementations.append("openssl")
+    if tlscryptoLoaded:
+        implementations.append("tlscrypto")
     if pycryptoLoaded:
         implementations.append("pycrypto")
     implementations.append("python")
@@ -636,6 +639,8 @@ def serverTestCmd(argv):
     implementations = []
     if m2cryptoLoaded:
         implementations.append("openssl")
+    if tlscryptoLoaded:
+        implementations.append("tlscrypto")
     if pycryptoLoaded:
         implementations.append("pycrypto")
     implementations.append("python")
