@@ -179,6 +179,7 @@ class X509(object):
             #
             self.cert_binary = converted
             self.x509.parseBinary(self.cert_binary)
+        return self
 
     def parseBinary(self, b):
         "Parse cert from binary ASN.1 BER data."

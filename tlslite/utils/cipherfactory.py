@@ -7,7 +7,6 @@ import os
 
 from tlslite.utils import python_aes
 from tlslite.utils import python_rc4
-
 from tlslite.utils import cryptomath
 
 tripleDESPresent = False

@@ -120,7 +120,7 @@ class MAC_SSL(object):
     def create(self, k, digestmod=None):
         self.digestmod = digestmod or hashlib.sha1
         # Repeat pad bytes 48 times for MD5; 40 times for other hash functions.
-        self.digest_size = 48 if (self.digestmod is hashlib.md5) else 40
+        self.digest_size = 16 if (self.digestmod is hashlib.md5) else 20
         repeat = 40 if self.digest_size == 20 else 48
         opad = b"\x5C" * repeat
         ipad = b"\x36" * repeat
