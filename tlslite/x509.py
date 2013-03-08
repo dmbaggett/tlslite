@@ -101,7 +101,6 @@ class X509(object):
         # Select implementation based on caller preference (or what we have)
         if implementation == "cx509":
             try:
-                raise ImportError() # testing
                 import x509cx509
                 self.x509 = x509cx509._X509()
             except ImportError:
