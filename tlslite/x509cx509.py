@@ -12,7 +12,7 @@ from utils.compat import bytesToString
 class _X509(cx509):
     def parseBinary(self, binary):
         "Parse the ASN.1 BER data for the cert."
-        self._parse(binary)
+        self._parse(bytes(binary))
 
     def getVersion(self):
         return self.get_version()
