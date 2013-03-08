@@ -9,9 +9,14 @@ from .handshakesettings import HandshakeSettings
 from .session import Session
 from .sessioncache import SessionCache
 from .tlsconnection import TLSConnection
-from .verifierdb import VerifierDB
 from .x509 import X509
 from .x509certchain import X509CertChain
+
+try:
+    # I don't want dmb as a dependency -- dmb
+    from .verifierdb import VerifierDB
+except ImportError:
+    pass
 
 try:
     # I don't always want the integration stuff -- dmb

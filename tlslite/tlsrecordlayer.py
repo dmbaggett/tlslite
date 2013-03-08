@@ -247,8 +247,8 @@ class TLSRecordLayer:
             self._shutdown(False)
             pass
         except TLSAbruptCloseError:
-            self._shutdown(False)
             if not self.ignoreAbruptClose:
+                self._shutdown(False)
                 raise
             else:
                 self._shutdown(True)
@@ -1036,7 +1036,7 @@ class TLSRecordLayer:
 
             #If the connection is closed, raise a socket error
             if len(s)==0:
-                    raise TLSAbruptCloseError()
+                raise TLSAbruptCloseError()
 
             b += bytearray(s)
             if len(b) == r.length:
