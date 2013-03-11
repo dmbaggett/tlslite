@@ -37,6 +37,7 @@ except ImportError:
 
 #Try to load pycrypto
 try:
+    raise ImportError() # pycrypto support seems broken (at least pycrypto_rsakey is)
     import Crypto.Cipher.AES
     pycryptoLoaded = True
 except ImportError:
@@ -44,6 +45,7 @@ except ImportError:
 
 # Try to load tlscrypto crypto C extensions
 try:
+    #raise ImportError() # DEBUG
     from tlscrypto import _AES
     from tlscrypto import _ARC2
     from tlscrypto import _ARC4
