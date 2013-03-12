@@ -23,6 +23,20 @@ import socket
 import errno
 import traceback
 
+#ARCODE
+def get_call_stack(maxdepth=999):
+    "Get the entire call stack in human-readable form as a string."
+    import inspect
+    stack = inspect.stack()
+    from_stack = []
+    for f in range(1, min(maxdepth, len(stack))):
+        (frame, filename, lineno, function, code_context, index) = stack[f]
+        try:
+            from_stack.append("[%s, %s]" % (filename, lineno))
+        finally:
+            del frame
+    return ",".join(from_stack)
+
 class _ConnectionState:
     def __init__(self):
         self.macContext = None
@@ -237,7 +251,6 @@ class TLSRecordLayer:
             return
         except socket.timeout:
             # Just pass timeouts up to the caller
-            self._shutdown(False)
             raise
         except TLSClosedConnectionError:
             #
@@ -665,6 +678,8 @@ class TLSRecordLayer:
         self.version = (0,0)
         self._versionCheck = False
         self.closed = True
+        import log
+        log.info("_shutdown called from %s", get_call_stack())
         if self.closeSocket:
             self.sock.close()
 
