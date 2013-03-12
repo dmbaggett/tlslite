@@ -709,12 +709,11 @@ class X509CertChain(object):
         elif isinstance(x509RootCerts, dict):
             for issuer, cacerts in x509RootCerts.iteritems():
                 for ca in cacerts:
-                    if isinstance(ca, type(bytes())):
+                    if hasattr(ca, 'getDER'):
+                        ca_cert_binary = ca.getDER()
+                    else:
                         # Cert is still stored as raw DER binary:
                         ca_cert_binary = ca
-                    else:
-                        # Cert was previously parsed into an X509 object:
-                        ca_cert_binary = ca.getDER()
 
                     if ca_cert_binary == cert_binary:
                         matched_a_root_cert = True
@@ -787,7 +786,7 @@ class X509CertChain(object):
         assert isinstance(x509RootCerts, dict)
         unparsed = x509RootCerts.get(issuer)
         parsed = []
-        if unparsed and isinstance(unparsed[0], type(bytes())):
+        if unparsed and not hasattr(unparsed[0], 'getDER'):
             for ca in unparsed:
                 # Create an X509 object by parsing the raw DER binary for this cert:
                 parsed.append(X509(ca, pem=False))
