@@ -3,4 +3,6 @@
 .pydevproject
 .settings
 build/
+tlslite.egg-info
+
 
