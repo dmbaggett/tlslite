@@ -46,9 +46,9 @@ except ImportError:
 # Try to load tlscrypto crypto C extensions
 try:
     #raise ImportError() # DEBUG
-    from tlscrypto import _AES
-    from tlscrypto import _ARC2
-    from tlscrypto import _ARC4
+    import _AES
+    import _ARC2
+    import _ARC4
     tlscryptoLoaded = True
 except ImportError as e:
     tlscryptoLoaded = False

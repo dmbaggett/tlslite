@@ -24,13 +24,13 @@ from .utils.keyfactory import _createPublicRSAKey
 # Get C implementations of other hash functions from tlscrypto
 try:
     #raise ImportError # for testing
-    from tlscrypto import _MD2
+    import _MD2
 except ImportError:
     _MD2 = None
 
 try:
     #raise ImportError # for testing
-    from tlscrypto import _MD4
+    import _MD4
 except ImportError:
     _MD4 = None
 

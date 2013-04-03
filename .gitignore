@@ -3,6 +3,5 @@
 .pydevproject
 .settings
 build/
+dist/
 tlslite.egg-info
-
-

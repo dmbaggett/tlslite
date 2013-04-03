@@ -1,6 +1,6 @@
 "tlscrypto implementation of RC2; this just uses separated-out code from pycrypto."
 try:
-    from tlscrypto import _ARC2
+    import _ARC2
 except ImportError:
     _ARC2 = None
 

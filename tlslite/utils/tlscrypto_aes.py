@@ -1,7 +1,7 @@
 "tlscrypto implementation of AES; this just uses separated-out code from pycrypto."
 
 try:
-    from tlscrypto import _AES
+    import _AES
 except ImportError:
     _AES = None
 
