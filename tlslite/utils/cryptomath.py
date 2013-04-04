@@ -48,9 +48,9 @@ try:
     #raise ImportError() # DEBUG
     from tlscrypto import _AES
     from tlscrypto import _ARC2
-    from tlscyrpto import _ARC4
+    from tlscrypto import _ARC4
     tlscryptoLoaded = True
-except ImportError as e:
+except ImportError as ex:
     try:
         import _AES
         import _ARC2
@@ -58,7 +58,7 @@ except ImportError as e:
         tlscryptoLoaded = True
     except ImportError as e:
         tlscryptoLoaded = False
-        print("failed to load tlscrypto: %s" % e)
+        print("failed to load tlscrypto: %s %s" % (ex, e))
 
 
 # **************************************************************************
