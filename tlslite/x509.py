@@ -26,13 +26,19 @@ try:
     #raise ImportError # for testing
     import _MD2
 except ImportError:
-    _MD2 = None
+    try:
+        from tlscrypto import _MD2
+    except ImportError:
+        _MD2 = None
 
 try:
     #raise ImportError # for testing
     import _MD4
 except ImportError:
-    _MD4 = None
+    try:
+        from tlscrypto import _MD4
+    except ImportError:
+        _MD4 = None
 
 #
 # Map OIDs to hasher factories
