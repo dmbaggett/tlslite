@@ -1,8 +1,11 @@
 "tlscrypto implementation of RC4; this just uses separated-out code from pycrypto."
 try:
-    import _ARC4
+    from tlscrypto import _ARC4
 except ImportError:
-    _ARC4 = None
+    try:
+        import _ARC4
+    except ImportError:
+        _ARC4 = None
 
 if _ARC4:
     from .cryptomath import *

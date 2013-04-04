@@ -1,9 +1,11 @@
 "tlscrypto implementation of AES; this just uses separated-out code from pycrypto."
-
 try:
-    import _AES
+    from tlscrypto import _AES
 except ImportError:
-    _AES = None
+    try:
+        import _AES
+    except ImportError:
+        _AES = None
 
 if _AES:
     from .cryptomath import *
