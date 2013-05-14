@@ -5,3 +5,5 @@
 build/
 dist/
 tlslite.egg-info
+.built
+.installed
