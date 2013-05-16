@@ -32,15 +32,19 @@ class _X509(cx509):
         # be correct (2164192190L in this case), but this value won't be
         # convertible to a system time_t value.
         #
-	return calendar.timegm(
-            time.strptime(
-                timestring[0:4]    + ' ' +
-                timestring[4:6]    + ' ' +
-                timestring[6:8]    + ' ' +
-                timestring[8:10]   + ' ' +
-                timestring[10:12]  + ' ' +
-                timestring[12:14], 
-                '%Y %m %d %H %M %S'))
+        try:
+            return calendar.timegm(
+                time.struct_time(
+                    tm_year=int(timestring[0:4]),
+                    tm_mon=int(timestring[4:6]),
+                    tm_mday=int(timestring[6:8]),
+                    tm_hour=int(timestring[8:10]),
+                    tm_min=int(timestring[10:12]),
+                    tm_sec=int(timestring[12:14])
+                    )
+                )
+        except:
+            return 0
         
     def getNotBefore(self):
         return self._str2time(self.get_validity()[0])
